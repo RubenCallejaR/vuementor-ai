@@ -1,0 +1,13 @@
+/* src/assets/main.css */
+@import './base.css';
+
+body {
+  min-height: 100vh;
+}
+
+#app-root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  color: var(--color-text);
+}
