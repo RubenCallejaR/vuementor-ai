@@ -141,3 +141,41 @@ icono y color propios.
 `FeedbackCard` por cada una de las 4 categorías, en orden fijo
 (rendimiento, accesibilidad, tipado, buenasPracticas). Los errores de
 `useCodeAnalysis` se muestran en un mensaje encima de las tarjetas.
+
+
+## Composable: `useAnalysisHistory`
+
+Guarda los últimos 5 análisis de la sesión (código + resultado + timestamp)
+en memoria. El estado se comparte entre todas las partes de la app que
+llamen al composable (no persiste al recargar la página).
+
+### API
+
+\`\`\`ts
+const { history, addEntry, clear } = useAnalysisHistory()
+\`\`\`
+
+| Propiedad | Tipo | Descripción |
+|---|---|---|
+| `history` | `Ref<AnalysisResult[]>` | Últimos análisis, más reciente primero. Máximo 5 entradas. |
+| `addEntry(entry)` | `(entry: AnalysisResult) => void` | Añade una entrada al principio; si se supera el límite, descarta la más antigua. |
+| `clear()` | `() => void` | Vacía el historial. |
+
+## Componente: `AnalysisHistory.vue`
+
+Muestra `useAnalysisHistory().history` como lista clicable. Al pulsar una
+entrada, emite `select` con el `AnalysisResult` completo para que el padre
+pueda recargarlo.
+
+### Eventos
+
+| Evento | Payload | Cuándo se emite |
+|---|---|---|
+| `select` | `AnalysisResult` | Al pulsar una entrada del historial. |
+
+## Flujo en `App.vue` (actualizado)
+
+Tras un análisis correcto, `App.vue` añade el resultado al historial con
+`addEntry`. Al seleccionar una entrada del historial, se restauran tanto
+el código en el editor como el resultado mostrado en las tarjetas, sin
+volver a llamar a la API.

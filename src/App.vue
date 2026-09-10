@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import CodeEditor from '@/components/CodeEditor.vue'
 import FeedbackCard from '@/components/FeedbackCard.vue'
+import AnalysisHistory from '@/components/AnalysisHistory.vue'
 import { useCodeAnalysis } from '@/composables/useCodeAnalysis'
-import type { AnalysisCategory } from '@/types/analysis'
+import { useAnalysisHistory } from '@/composables/useAnalysisHistory'
+import type { AnalysisCategory, AnalysisResult } from '@/types/analysis'
 import { ref } from 'vue'
 
 const CATEGORY_ORDER: AnalysisCategory[] = [
@@ -14,10 +16,22 @@ const CATEGORY_ORDER: AnalysisCategory[] = [
 
 const code = ref('')
 const { isLoading, error, result, analyzeCode } = useCodeAnalysis()
+const { addEntry } = useAnalysisHistory()
 
-function handleAnalyze() {
+async function handleAnalyze() {
   if (!code.value.trim() || isLoading.value) return
-  analyzeCode(code.value)
+
+  await analyzeCode(code.value)
+
+  if (result.value) {
+    addEntry(result.value)
+  }
+}
+
+function handleSelectHistory(entry: AnalysisResult) {
+  code.value = entry.code
+  result.value = entry
+  error.value = null
 }
 </script>
 
@@ -44,6 +58,8 @@ function handleAnalyze() {
         :suggestions="result.feedback[category]"
       />
     </section>
+
+    <AnalysisHistory @select="handleSelectHistory" />
   </div>
 </template>
 

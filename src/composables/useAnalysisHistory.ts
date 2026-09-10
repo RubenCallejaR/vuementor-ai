@@ -1,4 +1,25 @@
+import { ref } from 'vue'
+import type { AnalysisResult } from '@/types/analysis'
+
+const MAX_HISTORY_ENTRIES = 5
+
+// Estado a nivel de módulo: compartido por todas las llamadas a
+// useAnalysisHistory() durante la sesión (singleton mientras la pestaña
+// esté abierta; no persiste al recargar la página).
+const history = ref<AnalysisResult[]>([])
+
 export function useAnalysisHistory() {
-  // TODO: estado reactivo con array de hasta 5 entradas (historial de sesión)
-  // TODO: función addEntry(result) que inserte al principio y recorte a 5
+  function addEntry(entry: AnalysisResult): void {
+    history.value = [entry, ...history.value].slice(0, MAX_HISTORY_ENTRIES)
+  }
+
+  function clear(): void {
+    history.value = []
+  }
+
+  return {
+    history,
+    addEntry,
+    clear,
+  }
 }
