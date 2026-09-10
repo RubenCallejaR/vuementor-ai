@@ -72,3 +72,45 @@ para Vue (plantilla + `<script>`/`<script lang="ts">` embebidos) y tema oscuro (
 \`\`\`
 
 Al usar el par `code` / `update:code`, el componente es compatible de forma nativa con `v-model:code` de Vue 3.
+
+
+## Composable: `useCodeAnalysis`
+
+Gestiona la llamada a `POST /api/analyze` desde el frontend: estado de carga,
+error y resultado tipado.
+
+### API
+
+\`\`\`ts
+const { isLoading, error, result, analyzeCode, reset } = useCodeAnalysis()
+\`\`\`
+
+| Propiedad | Tipo | Descripción |
+|---|---|---|
+| `isLoading` | `Ref<boolean>` | `true` mientras la petición está en curso. |
+| `error` | `Ref<string \| null>` | Mensaje de error legible si algo falla (validación, red, respuesta malformada, error del servidor). `null` si no hay error. |
+| `result` | `Ref<AnalysisResult \| null>` | Resultado del último análisis correcto (ver `AnalysisResult` en `src/types/analysis.ts`). `null` hasta que hay un resultado. |
+| `analyzeCode(code)` | `(code: string) => Promise<void>` | Llama al endpoint con el código dado. Actualiza `isLoading`, `error` y `result`. Nunca lanza excepciones: cualquier fallo se refleja en `error`. |
+| `reset()` | `() => void` | Limpia `result` y `error` (útil, por ejemplo, al pegar un código nuevo antes de volver a analizar). |
+
+### Uso típico
+
+\`\`\`vue
+<script setup lang="ts">
+import { useCodeAnalysis } from '@/composables/useCodeAnalysis'
+
+const { isLoading, error, result, analyzeCode } = useCodeAnalysis()
+</script>
+
+<template>
+  <button :disabled="isLoading" @click="analyzeCode(userCode)">
+    {{ isLoading ? 'Analizando...' : 'Analizar' }}
+  </button>
+
+  <p v-if="error">{{ error }}</p>
+</template>
+\`\`\`
+
+### Desarrollo local
+
+`vite dev` por sí solo **no** sirve `/api/analyze` (es una función serverless de Vercel). Para probar el flujo completo en local necesitas `vercel dev` en lugar de (o además de) `npm run dev`.
