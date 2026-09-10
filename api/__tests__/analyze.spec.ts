@@ -1,5 +1,3 @@
-// api/__tests__/analyze.spec.ts
-// @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import handler from '../analyze'

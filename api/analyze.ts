@@ -1,4 +1,3 @@
-// api/analyze.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { AnalysisCategory, AnalysisFeedback, AnalyzeRequestBody } from '../src/types/analysis'
 

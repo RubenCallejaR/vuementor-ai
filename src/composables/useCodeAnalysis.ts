@@ -1,4 +1,3 @@
-// src/composables/useCodeAnalysis.ts
 import { ref } from 'vue'
 import type {
   AnalysisCategory,

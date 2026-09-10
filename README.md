@@ -114,3 +114,30 @@ const { isLoading, error, result, analyzeCode } = useCodeAnalysis()
 ### Desarrollo local
 
 `vite dev` por sí solo **no** sirve `/api/analyze` (es una función serverless de Vercel). Para probar el flujo completo en local necesitas `vercel dev` en lugar de (o además de) `npm run dev`.
+
+
+## Componente: `FeedbackCard.vue`
+
+Tarjeta que muestra las observaciones de una categoría del análisis, con
+icono y color propios.
+
+### Props
+
+| Prop | Tipo | Requerida | Descripción |
+|---|---|---|---|
+| `category` | `AnalysisCategory` (`'rendimiento' \| 'accesibilidad' \| 'tipado' \| 'buenasPracticas'`) | Sí | Determina el título, el icono y el color de la tarjeta. |
+| `suggestions` | `string[]` | Sí | Observaciones a mostrar. Si el array está vacío, se muestra "Sin observaciones para esta categoría." en su lugar. |
+
+### Uso
+
+\`\`\`vue
+<FeedbackCard category="rendimiento" :suggestions="['Evita recalcular en cada render']" />
+\`\`\`
+
+## Flujo en `App.vue`
+
+`App.vue` conecta las piezas: `CodeEditor` (v-model:code) → botón
+"Analizar" (llama a `analyzeCode` de `useCodeAnalysis`) → una
+`FeedbackCard` por cada una de las 4 categorías, en orden fijo
+(rendimiento, accesibilidad, tipado, buenasPracticas). Los errores de
+`useCodeAnalysis` se muestran en un mensaje encima de las tarjetas.

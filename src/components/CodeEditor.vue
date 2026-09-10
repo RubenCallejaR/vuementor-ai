@@ -1,4 +1,3 @@
-<!-- src/components/CodeEditor.vue -->
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { EditorView, basicSetup } from 'codemirror'

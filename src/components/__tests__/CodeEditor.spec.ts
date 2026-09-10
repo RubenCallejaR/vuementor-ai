@@ -1,4 +1,3 @@
-// src/components/__tests__/CodeEditor.spec.ts
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { EditorView } from 'codemirror'

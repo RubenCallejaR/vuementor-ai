@@ -1,5 +1,3 @@
-// src/types/analysis.ts
-
 export type AnalysisCategory =
   | 'rendimiento'
   | 'accesibilidad'
@@ -12,7 +10,7 @@ export type AnalysisFeedback = Record<AnalysisCategory, string[]>
 /** Forma que consumirá FeedbackCard.vue: una categoría a la vez. */
 export interface CategoryFeedback {
   category: AnalysisCategory
-  items: string[]
+  suggestions: string[]
 }
 
 /** Una entrada del historial de sesión (Feature 5). */

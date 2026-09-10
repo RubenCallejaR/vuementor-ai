@@ -1,4 +1,3 @@
-<!-- src/components/AnalysisHistory.vue -->
 <script setup lang="ts">
 // TODO: consumir useAnalysisHistory() y listar hasta 5 análisis previos de la sesión
 </script>
