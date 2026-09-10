@@ -1,54 +1,48 @@
-# vuementor-ai
+## API: `POST /api/analyze`
 
-This template should help get you started developing with Vue 3 in Vite.
+Analiza un componente Vue y devuelve feedback de code review generado por Claude.
 
-## Recommended IDE Setup
+**Modelo:** `claude-sonnet-5` (constante `MODEL` en `api/analyze.ts`).
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+### Request
 
-## Recommended Browser Setup
+- **Método:** `POST`
+- **Content-Type:** `application/json`
+- **Body:**
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+\`\`\`json
+{
+  "code": "<script setup lang=\"ts\">...</script><template>...</template>"
+}
+\`\`\`
 
-## Type Support for `.vue` Imports in TS
+### Response — 200 OK
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+\`\`\`json
+{
+  "rendimiento": ["..."],
+  "accesibilidad": ["..."],
+  "tipado": ["..."],
+  "buenasPracticas": ["..."]
+}
+\`\`\`
 
-## Customize configuration
+### Errores
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+| Código | Causa |
+|---|---|
+| 400 | `code` ausente, vacío o demasiado largo (>20 000 caracteres) |
+| 405 | Método distinto de `POST` |
+| 500 | Falta `ANTHROPIC_API_KEY` en el servidor |
+| 502 | Fallo de red hacia la API de Anthropic, respuesta no-2xx, JSON malformado o con forma inesperada |
 
-## Project Setup
+Todos los errores devuelven `{ "error": "mensaje" }`.
 
-```sh
-npm install
-```
+### Configurar la API key
 
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Type-Check, Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-npm run test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+1. Copia `.env.example` a `.env` y añade tu clave:
+   \`\`\`
+   ANTHROPIC_API_KEY=sk-ant-...
+   \`\`\`
+2. `.env` está en `.gitignore`: la clave nunca se sube al repo ni se incluye en el bundle del cliente, solo la lee `api/analyze.ts` en el servidor.
+3. En Vercel, configúrala en **Project Settings → Environment Variables** (o `vercel env add ANTHROPIC_API_KEY`) para Production, Preview y Development.
