@@ -1,8 +1,15 @@
 ## API: `POST /api/analyze`
 
-Analiza un componente Vue y devuelve feedback de code review generado por Claude.
+Analiza un componente Vue y devuelve feedback de code review generado por Gemini.
 
-**Modelo:** `claude-sonnet-5` (constante `MODEL` en `api/analyze.ts`).
+**Modelo:** `gemini-3.5-flash-lite` (constante `MODEL` en `api/analyze.ts`) — nivel gratuito
+de la API de Gemini. Verifica en https://ai.google.dev/gemini-api/docs/pricing que este
+modelo sigue en el nivel "Free" antes de asumir coste cero; Google retira modelos a nuevos
+usuarios con frecuencia (ya pasó una vez con `gemini-2.5-flash-lite`).
+
+**Aviso de privacidad:** en el nivel gratuito de Gemini, Google puede usar el contenido
+enviado (en este caso, el código pegado por el usuario) para mejorar sus productos. Si vas
+a usar esto con código real/privado, ten esto en cuenta o pasa a un nivel de pago.
 
 ### Request
 
@@ -33,19 +40,20 @@ Analiza un componente Vue y devuelve feedback de code review generado por Claude
 |---|---|
 | 400 | `code` ausente, vacío o demasiado largo (>20 000 caracteres) |
 | 405 | Método distinto de `POST` |
-| 500 | Falta `ANTHROPIC_API_KEY` en el servidor |
-| 502 | Fallo de red hacia la API de Anthropic, respuesta no-2xx, JSON malformado o con forma inesperada |
+| 500 | Falta `GEMINI_API_KEY` en el servidor |
+| 502 | Fallo de red hacia la API de Gemini, respuesta no-2xx, respuesta bloqueada por el filtro de seguridad, JSON malformado o con forma inesperada |
 
 Todos los errores devuelven `{ "error": "mensaje" }`.
 
 ### Configurar la API key
 
-1. Copia `.env.example` a `.env` y añade tu clave:
+1. Consigue una key gratis en [Google AI Studio](https://aistudio.google.com/app/apikey) (inicia sesión con una cuenta de Google → "Create API key"; no requiere tarjeta para el nivel gratuito).
+2. Copia `.env.example` a `.env` y añade tu clave:
    \`\`\`
-   ANTHROPIC_API_KEY=sk-ant-...
+   GEMINI_API_KEY=AIza...
    \`\`\`
-2. `.env` está en `.gitignore`: la clave nunca se sube al repo ni se incluye en el bundle del cliente, solo la lee `api/analyze.ts` en el servidor.
-3. En Vercel, configúrala en **Project Settings → Environment Variables** (o `vercel env add ANTHROPIC_API_KEY`) para Production, Preview y Development.
+3. `.env` está en `.gitignore`: la clave nunca se sube al repo ni se incluye en el bundle del cliente.
+4. En Vercel, configúrala en **Project Settings → Environment Variables** (o `vercel env add GEMINI_API_KEY`) para Production, Preview y Development.
 
 
 ## Componente: `CodeEditor.vue`

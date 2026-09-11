@@ -1,13 +1,24 @@
+// api/analyze.ts
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import type { AnalysisCategory, AnalysisFeedback, AnalyzeRequestBody } from '../src/types/analysis'
 
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages'
-const ANTHROPIC_VERSION = '2023-06-01'
-const MODEL = 'claude-sonnet-5'
-const MAX_TOKENS = 1000
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models'
+const MODEL = 'gemini-3.5-flash-lite'
+const MAX_OUTPUT_TOKENS = 1000
 const MAX_CODE_LENGTH = 20_000
 
 const CATEGORIES: AnalysisCategory[] = ['rendimiento', 'accesibilidad', 'tipado', 'buenasPracticas']
+
+const RESPONSE_SCHEMA = {
+  type: 'object',
+  properties: {
+    rendimiento: { type: 'array', items: { type: 'string' } },
+    accesibilidad: { type: 'array', items: { type: 'string' } },
+    tipado: { type: 'array', items: { type: 'string' } },
+    buenasPracticas: { type: 'array', items: { type: 'string' } },
+  },
+  required: CATEGORIES,
+}
 
 function buildPrompt(code: string): string {
   return `Eres un revisor experto de código Vue 3 + TypeScript. Analiza el siguiente componente
@@ -18,16 +29,8 @@ Componente a analizar:
 ${code}
 \`\`\`
 
-Devuelve EXCLUSIVAMENTE un objeto JSON válido (sin texto adicional, sin bloques de markdown,
-sin explicaciones) con exactamente estas 4 claves, cada una como array de strings
-(observaciones breves y concretas; si no hay observaciones para una categoría, usa un array vacío):
-
-{
-  "rendimiento": string[],
-  "accesibilidad": string[],
-  "tipado": string[],
-  "buenasPracticas": string[]
-}`
+Devuelve observaciones breves y concretas para cada categoría (rendimiento, accesibilidad,
+tipado, buenasPracticas). Si no hay observaciones para una categoría, usa un array vacío.`
 }
 
 function isAnalysisFeedback(value: unknown): value is AnalysisFeedback {
@@ -38,24 +41,15 @@ function isAnalysisFeedback(value: unknown): value is AnalysisFeedback {
   )
 }
 
-/**
- * Claude a veces envuelve el JSON en un bloque ```json ... ``` aunque se le pida que no lo haga.
- * Lo limpiamos por seguridad antes de parsear.
- */
-function extractJson(text: string): string {
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)
-  return fenced ? fenced[1].trim() : text.trim()
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'Método no permitido. Usa POST.' })
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    console.error('[api/analyze] Falta la variable de entorno ANTHROPIC_API_KEY')
+    console.error('[api/analyze] Falta la variable de entorno GEMINI_API_KEY')
     return res.status(500).json({ error: 'El servidor no está configurado correctamente.' })
   }
 
@@ -76,52 +70,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: `El código supera el límite de ${MAX_CODE_LENGTH} caracteres.` })
   }
 
-  let anthropicResponse: Response
+  let geminiResponse: Response
   try {
-    anthropicResponse = await fetch(ANTHROPIC_API_URL, {
+    geminiResponse = await fetch(`${GEMINI_API_URL}/${MODEL}:generateContent`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': ANTHROPIC_VERSION,
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        messages: [{ role: 'user', content: buildPrompt(code) }],
+        contents: [{ parts: [{ text: buildPrompt(code) }] }],
+        generationConfig: {
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+          responseMimeType: 'application/json',
+          responseSchema: RESPONSE_SCHEMA,
+        },
       }),
     })
   } catch (err) {
-    console.error('[api/analyze] Fallo de red al llamar a la API de Anthropic:', err)
+    console.error('[api/analyze] Fallo de red al llamar a la API de Gemini:', err)
     return res.status(502).json({ error: 'No se pudo contactar con el servicio de análisis.' })
   }
 
-  if (!anthropicResponse.ok) {
-    const errorBody = await anthropicResponse.text().catch(() => '')
-    console.error(`[api/analyze] La API de Anthropic respondió ${anthropicResponse.status}:`, errorBody)
+  if (!geminiResponse.ok) {
+    const errorBody = await geminiResponse.text().catch(() => '')
+    console.error(`[api/analyze] La API de Gemini respondió ${geminiResponse.status}:`, errorBody)
     return res.status(502).json({ error: 'El servicio de análisis devolvió un error.' })
   }
 
   let data: unknown
   try {
-    data = await anthropicResponse.json()
+    data = await geminiResponse.json()
   } catch {
     return res.status(502).json({ error: 'Respuesta del servicio de análisis no es JSON válido.' })
   }
 
-  const content = (data as { content?: Array<{ type: string; text?: string }> })?.content
-  const textBlock = content?.find((block) => block.type === 'text')
+  const candidates = (
+    data as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }
+  )?.candidates
+  const text = candidates?.[0]?.content?.parts?.[0]?.text
 
-  if (!textBlock?.text) {
-    console.error('[api/analyze] Respuesta de Anthropic sin bloque de texto:', data)
+  if (!text) {
+    console.error('[api/analyze] Respuesta de Gemini sin texto (posible bloqueo de seguridad):', data)
     return res.status(502).json({ error: 'Respuesta del modelo vacía o malformada.' })
   }
 
   let parsedFeedback: unknown
   try {
-    parsedFeedback = JSON.parse(extractJson(textBlock.text))
+    parsedFeedback = JSON.parse(text)
   } catch {
-    console.error('[api/analyze] No se pudo parsear el JSON del modelo:', textBlock.text)
+    console.error('[api/analyze] No se pudo parsear el JSON del modelo:', text)
     return res.status(502).json({ error: 'El modelo devolvió un JSON malformado.' })
   }
 
